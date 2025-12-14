@@ -1,0 +1,32 @@
+@import "tailwindcss";
+
+@font-face {
+  font-family: 'jmadh';
+  src: url('./assets/fonts/Just_Me_Again_Down_Here/JustMeAgainDownHere-Regular.ttf') format('truetype');
+}
+@font-face {
+  font-family: 'charis';
+  src: url('./assets/fonts/Charis-7.000/Charis-Regular.ttf') format('truetype');
+}
+
+@font-face {
+  font-family: 'playno';
+  src: url('assets/fonts/Playwrite_NO/static/PlaywriteNO-Regular.ttf') format('truetype');
+}
+
+@font-face {
+  font-family: 'charis_bold';
+  src: url('assets/fonts/Charis-7.000/Charis-Bold.ttf') format('truetype');
+  font-weight: 700;
+}
+
+@font-face {
+  font-family: Baloo;
+  src: url('assets/fonts/Baloo/Baloo-Regular.ttf') format('truetype');
+}
+
+:root {
+  --color-primary-blue: #DEF2F2;
+  --color-primary-peach: #fef2cd;
+  --color-button: #087E84;
+}
