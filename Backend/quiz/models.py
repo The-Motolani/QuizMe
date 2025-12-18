@@ -19,14 +19,13 @@ QUIZ_CATEGORY_CHOICES = (
     ('english', 'English'),
 )
 
-
 class QuizCategory(models.Model):
     name = models.CharField(max_length=100)
     slug = models.SlugField(unique=True)
 
     def __str__(self):
         return self.name
-    
+
 class SubCategory(models.Model):
     category = models.ForeignKey(
         QuizCategory,
@@ -37,7 +36,6 @@ class SubCategory(models.Model):
 
     def __str__(self):
         return f"{self.category.name} - {self.name}"
-
 
 class Question(models.Model):
     DIFFICULTY_CHOICES = [
@@ -58,12 +56,8 @@ class Question(models.Model):
         blank=True,
         related_name="questions"
     )
-
     text = models.TextField()
-    difficulty = models.CharField(
-        max_length=10,
-        choices=DIFFICULTY_CHOICES
-    )
+    difficulty = models.CharField(max_length=10, choices=DIFFICULTY_CHOICES)
     explanation = models.TextField(blank=True)
     time_limit = models.PositiveIntegerField(default=30)
 
@@ -78,7 +72,6 @@ class Quiz(models.Model):
         blank=True,
         related_name="created_quizzes"
     )
-
     title = models.CharField(max_length=150)
     questions = models.ManyToManyField(Question)
     is_public = models.BooleanField(default=True)
@@ -86,7 +79,7 @@ class Quiz(models.Model):
 
     def __str__(self):
         return self.title
-    
+
 class Answer(models.Model):
     question = models.ForeignKey(
         Question,
@@ -99,17 +92,13 @@ class Answer(models.Model):
     def __str__(self):
         return self.text
 
-
 class QuizAttempt(models.Model):
     user = models.ForeignKey(
         CustomUser,
         on_delete=models.CASCADE,
         related_name="quiz_attempts"
     )
-    quiz = models.ForeignKey(
-        Quiz,
-        on_delete=models.CASCADE
-    )
+    quiz = models.ForeignKey(Quiz, on_delete=models.CASCADE)
     score = models.PositiveIntegerField()
     total_questions = models.PositiveIntegerField()
     completed_at = models.DateTimeField(auto_now_add=True)
@@ -123,14 +112,8 @@ class UserAnswer(models.Model):
         related_name="answers",
         on_delete=models.CASCADE
     )
-    question = models.ForeignKey(
-        Question,
-        on_delete=models.CASCADE
-    )
-    selected_answer = models.ForeignKey(
-        Answer,
-        on_delete=models.CASCADE
-    )
+    question = models.ForeignKey(Question, on_delete=models.CASCADE)
+    selected_answer = models.ForeignKey(Answer, on_delete=models.CASCADE)
     is_correct = models.BooleanField()
 
     def __str__(self):
@@ -140,6 +123,7 @@ class MultiplayerRoom(models.Model):
     quiz = models.ForeignKey(Quiz, on_delete=models.CASCADE)
     host = models.ForeignKey(CustomUser, on_delete=models.CASCADE)
     code = models.UUIDField(default=uuid.uuid4, unique=True, editable=False)
+    participants = models.ManyToManyField(CustomUser, related_name="joined_rooms", blank=True)
     is_active = models.BooleanField(default=True)
     created_at = models.DateTimeField(auto_now_add=True)
 
@@ -148,10 +132,7 @@ class MultiplayerRoom(models.Model):
 
 class LeaderboardEntry(models.Model):
     user = models.ForeignKey(CustomUser, on_delete=models.CASCADE)
-    category = models.ForeignKey(
-        QuizCategory,
-        on_delete=models.CASCADE
-    )
+    category = models.ForeignKey(QuizCategory, on_delete=models.CASCADE)
     best_score = models.PositiveIntegerField()
     updated_at = models.DateTimeField(auto_now=True)
 

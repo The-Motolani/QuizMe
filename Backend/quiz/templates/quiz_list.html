@@ -1,0 +1,12 @@
+<!--quiz_list.html-->
+<h1>Quiz List</h1>
+<ul>
+    {%for quiz in quizzes%}
+    <li>
+        <h2>{{ quiz.title }}</h2>
+        <p>{{ quiz.description }}</p>
+        <p>Difficulty: {{ quiz.difficulty }}</p>
+        <p>Category: {{ quiz.category.name }}</p>
+    <li>
+    {%endfor%}
+</ul>
