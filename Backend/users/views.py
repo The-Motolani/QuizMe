@@ -7,7 +7,7 @@ from django.contrib.auth import authenticate
 from uuid import UUID
 from django.contrib.auth.decorators import user_passes_test, login_required
 from .forms import UserLoginForm, UserRegistrationForm
-from .models import CustomUser, EmailVerificationToken, PasswordResetToken
+from .models import CustomUser, PasswordResetToken, UserProfile
 from django.contrib.auth.forms import UserCreationForm, AuthenticationForm
 from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView
 from rest_framework_simplejwt.tokens import RefreshToken
@@ -57,38 +57,39 @@ class LoginView(APIView):
 class CustomTokenRefreshView(TokenRefreshView):
     serializer = CustomTokenRefreshSerializer
 
-class UserView(APIView):
+class UserView(generics.UpdateAPIView):
     permission_classes = [IsAuthenticated]
+    serializer_class = UserSerializer
 
-    def get(self, request):
-        serializer = UserSerializer(request.user)
-        return Response(serializer.data)
+    def get_object(self):
+        profile, created = UserProfile.objects.get_or_create(user=self.request.user)
+        return profile
     
-class EmailVerificationView(APIView):
-    permission_classes = []
+# class EmailVerificationView(APIView):
+#     permission_classes = []
 
-    def post(self, request):
-        token = request.data.get('token')
+#     def post(self, request):
+#         token = request.data.get('token')
 
-        try:
-            UUID(token)
-        except (ValueError, TypeError):
-            return Response({"detail": "Invalid token."}, status=status.HTTP_400_BAD_REQUEST)
+#         try:
+#             UUID(token)
+#         except (ValueError, TypeError):
+#             return Response({"detail": "Invalid token."}, status=status.HTTP_400_BAD_REQUEST)
         
-        try:
-            verification_record = EmailVerificationToken.objects.get(token=token)
-        except EmailVerificationToken.DoesNotExist:
-            return Response({"detail": "Invalid token."}, status=status.HTTP_400_BAD_REQUEST)
+#         try:
+#             verification_record = EmailVerificationToken.objects.get(token=token)
+#         except EmailVerificationToken.DoesNotExist:
+#             return Response({"detail": "Invalid token."}, status=status.HTTP_400_BAD_REQUEST)
         
-        if verification_record.is_expired():
-            return Response({"detail": "Token has expired."}, status=status.HTTP_400_BAD_REQUEST)
+#         if verification_record.is_expired():
+#             return Response({"detail": "Token has expired."}, status=status.HTTP_400_BAD_REQUEST)
         
-        user = verification_record.user
-        user.is_email_verified = True
-        user.save()
-        verification_record.delete()
+#         user = verification_record.user
+#         user.is_email_verified = True
+#         user.save()
+#         verification_record.delete()
 
-        return Response({"detail": "Email verified successfully."}, status=status.HTTP_200_OK)
+#         return Response({"detail": "Email verified successfully."}, status=status.HTTP_200_OK)
 
 class PasswordResetRequestView(APIView):
     permission_classes = []

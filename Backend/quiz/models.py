@@ -37,6 +37,22 @@ class SubCategory(models.Model):
     def __str__(self):
         return f"{self.category.name} - {self.name}"
 
+class Quiz(models.Model):
+    creator = models.ForeignKey(
+        CustomUser,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="created_quizzes"
+    )
+    title = models.CharField(max_length=250)
+    # questions = models.ManyToManyField(Question)
+    is_public = models.BooleanField(default=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return self.title
+
 class Question(models.Model):
     DIFFICULTY_CHOICES = [
         ("easy", "Easy"),
@@ -56,6 +72,11 @@ class Question(models.Model):
         blank=True,
         related_name="questions"
     )
+    quiz = models.ForeignKey(
+            Quiz, 
+            on_delete=models.CASCADE, 
+            related_name="questions"
+        )
     text = models.TextField()
     difficulty = models.CharField(max_length=10, choices=DIFFICULTY_CHOICES)
     explanation = models.TextField(blank=True)
@@ -64,21 +85,6 @@ class Question(models.Model):
     def __str__(self):
         return self.text[:50]
 
-class Quiz(models.Model):
-    creator = models.ForeignKey(
-        CustomUser,
-        on_delete=models.SET_NULL,
-        null=True,
-        blank=True,
-        related_name="created_quizzes"
-    )
-    title = models.CharField(max_length=150)
-    questions = models.ManyToManyField(Question)
-    is_public = models.BooleanField(default=True)
-    created_at = models.DateTimeField(auto_now_add=True)
-
-    def __str__(self):
-        return self.title
 
 class Answer(models.Model):
     question = models.ForeignKey(

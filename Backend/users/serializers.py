@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from users.models import CustomUser, UserProfile, EmailVerificationToken
+from .models import CustomUser, UserProfile
 from django.contrib.auth import get_user_model, authenticate
 from django.contrib.auth.password_validation import validate_password
 from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
@@ -23,7 +23,7 @@ class UserSerializer(serializers.ModelSerializer):
 class ProfileSerializer(serializers.ModelSerializer):
     class Meta:
         model = UserProfile
-        fields = '__all__'
+        fields = ['profile_picture']
 
 class RegisterSerializer(serializers.ModelSerializer):
     password = serializers.CharField(
@@ -32,50 +32,39 @@ class RegisterSerializer(serializers.ModelSerializer):
         validators=[validate_password],
         style={'input_type': 'password'}
     )
-    confirm_password = serializers.CharField(
-        write_only=True,
-        required=True,
-        style={'input_type': 'password'}
-    )
 
     class Meta:
         model = User
-        fields = ('username', 'email', 'password', 'confirm_password')
-
-    def validate(self, attrs):
-        if attrs['password'] != attrs['confirm_password']:
-            raise serializers.ValidationError({"password": "Password fields didn’t match."})
-        return attrs
+        fields = ('username', 'email', 'password')
 
     def create(self, validated_data):
-        validated_data.pop('confirm_password')
         user = User.objects.create_user(
             username=validated_data['username'],
             email=validated_data['email'],
             password=validated_data['password']
         )
     
-        token = EmailVerificationToken.objects.create(user=user)
+        # token = EmailVerificationToken.objects.create(user=user)
 
-        verification_link = f"http://localhost:3000/verify-email?token={token.token}"
+        # verification_link = f"http://localhost:3000/verify-email?token={token.token}"
 
-        send_mail(
-            subject="Verify your QuizMe! account",
-            message=f"Click to verify your email: {verification_link}",
-            from_email=settings.DEFAULT_FROM_EMAIL,
-            recipient_list=[user.email],
-        )
+        # send_mail(
+        #     subject="Verify your QuizMe! account",
+        #     message=f"Click to verify your email: {verification_link}",
+        #     from_email=settings.DEFAULT_FROM_EMAIL,
+        #     recipient_list=[user.email],
+        # )
 
         return user
 
 class CustomTokenRefreshSerializer(TokenRefreshSerializer):
     pass
 
-class EmailVerificationSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = EmailVerificationToken
-        fields = ['token']
-        token = serializers.UUIDField()
+# class EmailVerificationSerializer(serializers.ModelSerializer):
+#     class Meta:
+#         model = EmailVerificationToken
+#         fields = ['token']
+#         token = serializers.UUIDField()
 
 class LoginSerializer(serializers.Serializer):
     login = serializers.CharField()
@@ -97,8 +86,8 @@ class LoginSerializer(serializers.Serializer):
         if not user:
             raise AuthenticationFailed("Invalid credentials")
 
-        if not user.is_email_verified:
-            raise AuthenticationFailed("Email not verified")
+        # if not user.is_email_verified:
+        #     raise AuthenticationFailed("Email not verified")
 
         data["user"] = user
         return data
@@ -109,4 +98,3 @@ class PasswordResetRequestSerializer(serializers.Serializer):
 class PasswordResetConfirmSerializer(serializers.Serializer):
     token = serializers.UUIDField()
     new_password = serializers.CharField(min_length=8)
-    confirm_password = serializers.CharField(min_length=8)

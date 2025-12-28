@@ -57,8 +57,7 @@ class RegisterUserTest(APITestCase):
         data = {
             "username": "testuser",
             "email": "test@example.com",
-            "password": "StrongPass123",
-            "confirm_password": "StrongPass123"
+            "password": "StrongPass123"
         }
 
         response = self.client.post(url, data)
@@ -120,8 +119,7 @@ class PasswordResetConfirmTest(APITestCase):
         url = reverse("password-reset-confirm")
         data = {
             "token": str(self.token.token),
-            "new_password": "NewStrongPass123",
-            "confirm_password": "NewStrongPass123"
+            "new_password": "NewStrongPass123"
         }
         response = self.client.post(url, data)
         self.assertEqual(response.status_code, status.HTTP_200_OK)

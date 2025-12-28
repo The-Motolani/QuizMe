@@ -1,13 +1,13 @@
 from django.shortcuts import render
-from .models import QuizCategory
 from django.views.generic.edit import UpdateView
 from django.urls import reverse_lazy
 from django.views import View
 from rest_framework.views import APIView
 from rest_framework.permissions import IsAuthenticated, IsAuthenticatedOrReadOnly
 from .permissions import IsQuizCreatorOrReadOnly
-from rest_framework import viewsets, generics, permissions, status
+from rest_framework import viewsets, filters, generics, permissions, status
 from rest_framework.decorators import action
+from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework.response import Response
 from .models import (
     QuizCategory, SubCategory, Question, Answer, Quiz,
@@ -20,6 +20,13 @@ from .serializers import (
     QuizAttemptSerializer, MultiplayerRoomSerializer,
     LeaderboardEntrySerializer, ShareableResultSerializer, SubmitAnswerSerializer
 )
+from rest_framework.pagination import PageNumberPagination
+
+# --- Custom Pagination ---
+class QuizPagination(PageNumberPagination):
+    page_size = 10
+    page_size_query_param = 'page_size'
+    max_page_size = 50
 
 # --- Categories ---
 class QuizCategoryViewSet(viewsets.ModelViewSet):
@@ -43,8 +50,53 @@ class QuestionViewSet(viewsets.ModelViewSet):
 # --- Quizzes ---
 class QuizViewSet(viewsets.ModelViewSet):
     queryset = Quiz.objects.all()
+    serializer_class = QuizSerializer
     permission_classes = [permissions.IsAuthenticatedOrReadOnly, IsQuizCreatorOrReadOnly]
+    pagination_class = QuizPagination
+    filter_backends = [DjangoFilterBackend, filters.OrderingFilter, filters.SearchFilter]
+    
+    # Filtering options
+    filterset_fields = ['is_public', 'creator__id', 'difficulty', 'questions__subcategory__id', 'questions__category__slug']
+    
+    # Ordering options
+    ordering_fields = ['title', 'created_at']
+    ordering = ['-created_at']  # default: newest first
+    
+    # Search options
+    search_fields = ['title', 'questions__text']
 
+    @action(detail=True, methods=['post'])
+    def submit_answer(self, request, pk=None):
+        question_id=request.data.get("question_id")
+        answer_id=request.data.get("answer_id")
+
+        try:
+            question = Question.objects.get(id=question_id, quiz_id=pk)
+        except Question.DoesNotExist:
+            return Response({"Question Does Not Exist!"}, status=status.HTTP_400_BAD_REQUEST)
+        
+        try:
+            answer = question.objects.get(id=answer_id)
+        except Answer.DoesNotExist:
+            return Response({'Answer does not exist!'}, status=status.HTTP_400_BAD_REQUEST)
+
+        if answer.is_correct:
+            return Response({'Correct Answer'}, status=status.HTTP_200_OK)
+        else:
+            return Response({'Incorrect Answer'}, status=status.HTTP_400_BAD_REQUEST)
+
+    @action(detail=True, methods=['post'])
+    def add_question(self, request, pk=None):
+        quiz = self.get_object()
+        question_text = request.data.get('text')
+        answer_data = request.data.get('answer', [])
+
+        if not question_text:
+            return Response({'Question does not exist'}, status=status.HTTP_400_BAD_REQUEST)
+
+        question = Question.objects.create(quiz=quiz, text=question_text)
+
+        
     def get_serializer_class(self):
         if self.action in ["create", "update", "partial_update"]:
             return QuizCreateSerializer
@@ -127,6 +179,10 @@ class LeaderboardViewSet(viewsets.ReadOnlyModelViewSet):
         entries = LeaderboardEntry.objects.filter(category__slug=category).order_by('-best_score')
         serializer = self.get_serializer(entries, many=True)
         return Response(serializer.data)
+
+    filterset_fields = ['category__slug', 'user__id']  # filter by category or user
+    ordering_fields = ['best_score', 'updated_at']
+    ordering = ['-best_score']  # default: highest score first
 
 # --- Shareable Results ---
 class ShareableResultViewSet(viewsets.ModelViewSet):
