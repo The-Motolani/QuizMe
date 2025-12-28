@@ -2,6 +2,7 @@
 from pathlib import Path
 from datetime import timedelta
 import os
+from decouple import config
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -9,7 +10,7 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # See https://docs.djangoproject.com/en/5.2/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = 'django-insecure-t2)2u)u+5z6l(0*1r8df6dscld!sji@u$$nr#&kl3)t2l=%wpf'
+SECRET_KEY = config('SECRET_KEY')
 
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
@@ -147,4 +148,7 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 # Email Configuration
 EMAIL_BACKEND = "django.core.mail.backends.locmem.EmailBackend"
+# EMAIL_HOST = 'smtp.gmail.com'
+# EMAIL_PORT = 587
+# EMAIL_USE_TLS = True
 DEFAULT_FROM_EMAIL = "no-reply@quizme.com"
