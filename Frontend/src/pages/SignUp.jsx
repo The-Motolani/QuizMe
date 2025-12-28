@@ -4,45 +4,50 @@ import { FaFacebookF, FaLinkedinIn, FaGoogle, FaRegEnvelope, FaUser } from "reac
 import { MdLockOutline } from "react-icons/md";
 import QuizMeFavicon from "../assets/images/QuziMeFavicon";
 import { registerUser } from "../services/api";
-import { showError } from "../utils/showError";
+import { toast } from 'react-hot-toast';
 
 export default function SignUp() {
   const navigate = useNavigate();
-  const [error, setError] = useState("");
   const [formData, setFormData] = useState({
     username: "",
     email: "",
-    first_name: "",
     password: "",
-    confirmPassword: "",
+    confirm_password: "",
   });
-
   const handleChange = (e) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
   };
 
   const handleSubmit = async(e) => {
     e.preventDefault();
-    setError("");
+    
 
-    if (formData.password !== formData.confirmPassword) {
-        setError("Passwords  do not match")
+    if (formData.password !== formData.confirm_password) {
+        toast.error("Passwords do not match");
       return;
     }
 
-    try {
+     try {
+    const payload = {
+      username: formData.username,
+      email: formData.email,
+      password: formData.password,
+    };
 
-    const response = await registerUser(formData);
-     if (response?.id || response?.username) {
-        navigate("/login");
-      } else {
-        setError("Signup failed");
-      }
-    } catch {
-      setError("Signup error");
-    }
+    await registerUser(payload);
 
-  };
+    toast.success(
+      "Account created successfully. Check your email to verify your account."
+    );
+
+    setTimeout(() => navigate("/login"), 3000);
+  } catch (err) {
+  console.log("Signup error:", err.response?.data);
+  const data = err.response?.data;
+  const message = data?.detail || JSON.stringify(data) || err.message || 'Signup failed';
+  toast.error(message);
+  }
+};
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-100 px-4">
@@ -124,15 +129,15 @@ export default function SignUp() {
               <MdLockOutline className="text-gray-400 m-2" />
               <input
                 type="password"
-                name="confirmPassword"
+                name="confirm_password"
                 placeholder="Confirm Password"
-                value={formData.confirmPassword}
+                value={formData.confirm_password}
                 onChange={handleChange}
                 className="outline-none flex-1 p-2"
                 required
               />
             </div>
-             {error && <p className="text-red-500">{error}</p>}
+             
 
             <button
               type="submit"
@@ -169,7 +174,7 @@ export default function SignUp() {
           <div className="border-2 w-12 rounded-full border-yellow-100 mb-4"></div>
           <h3 className="text-xl font-bold">Already have an account?</h3>
 
-          <Link to="/auth" className="mt-6 w-full max-w-xs">
+          <Link to="/login" className="mt-6 w-full max-w-xs">
             <p className="text-center border-2 border-white rounded-full py-2 font-semibold hover:bg-white hover:shadow-md cursor-pointer">
               Log In
             </p>

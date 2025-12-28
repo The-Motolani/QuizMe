@@ -4,41 +4,57 @@ import { FaFacebookF, FaLinkedinIn, FaGoogle, FaRegEnvelope } from "react-icons/
 import { MdLockOutline } from "react-icons/md";
 import QuizMeFavicon from "../assets/images/QuziMeFavicon";
 import { loginUser } from "../services/api";
-import { showError } from "../utils/showError";
-import { useAuth } from "../utils/useAuth";
+import { AuthProvider, UseAuth } from "../utils/UseAuth";
+import { toast } from 'react-hot-toast';
 
 
 export default function Auth() {
-  const {login} = useAuth();
+  const {login} = UseAuth();
   const navigate = useNavigate();
   const [error, setError] = useState("");
   const [formData, setFormData] = useState({ identifier: "", password: "" });
 
   const handleChange = (e) => {
-    setFormData({ ...formData, [e.target.name]: e.target.value });
+    const {name, value} = e.target;
+    setFormData((prevData) => (
+      { ...prevData, 
+        [name]: value 
+      }
+    ));
   };
 
   const handleSubmit = async (e) => {
-    e.preventDefault();
-    setError("");
+  e.preventDefault();
+  setError("");
 
-    try {
+  try {
     const response = await loginUser(formData);
+    console.log("Login response:", response);
+    const { user, tokens } = response;
 
-    if (!response?.access) {
-      setError("Invalid username or password");
+    if (!tokens?.access) {
+      toast.error("Invalid username or password");
       return;
     }
-  
 
-      localStorage.setItem('access', response.access);
-      localStorage.setItem('refresh', response.refresh);
-      login(response.user)
-      navigate("/homepage");
-  } catch {
-      showError("Login failed! Please try again.");
-    }
-  };
+    // Store tokens
+    localStorage.setItem("access", tokens.access);
+    localStorage.setItem("refresh", tokens.refresh);
+
+    // Store user in auth context
+    login(user);
+    toast.success('Logged in successfully');
+
+    navigate("/homepage");
+  } catch (err) {
+    const message =
+      err.response?.data?.detail ||
+      err.response?.data?.error ||
+      "Login failed! Please try again.";
+
+    toast.error(message);
+  }
+};
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-100 px-4">
@@ -97,7 +113,7 @@ export default function Auth() {
               </label>
               <Link to="/forgotPassword" className="hover:text-gray-700"  >Forgot Password?</Link>
             </div>
-                {error && <p className="text-red-500">{error}</p>}
+                
             <button
               type="submit"
               className="

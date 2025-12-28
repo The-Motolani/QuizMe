@@ -30,3 +30,25 @@
   --color-primary-peach: #fef2cd;
   --color-button: #087E84;
 }
+
+/* Prevent horizontal scrolling caused by oversized elements */
+html, body, #root {
+  overflow-x: hidden;
+}
+
+.skeleton-card {
+  height: 140px;
+  background: linear-gradient(
+    90deg,
+    #eee 25%,
+    #ddd 37%,
+    #eee 63%
+  );
+  animation: shimmer 1.4s infinite;
+  border-radius: 12px;
+}
+
+@keyframes shimmer {
+  0% { background-position: -400px 0 }
+  100% { background-position: 400px 0 }
+}

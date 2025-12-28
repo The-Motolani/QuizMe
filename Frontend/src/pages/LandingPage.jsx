@@ -1,25 +1,9 @@
 import Header from '../components/layout/Header';
- import Hero from '../components/layout/Hero';
-// import { BrowserRouter } from 'react-router-dom';
+ import Hero from '../components/layout/Hero';;
 import React from 'react';
 import HowItWorks from '../components/layout/HowItWorks';
 import Footer from '../components/layout/Footer';
 
-
-// function LandingPage() {
-// return (
-//     < >
-//     <Header />
-//      <Hero /> 
-//     <Footer />
-   
-//     </>
-// )
-
-// }
-
-
-// HeroLanding.jsx
 
 
 export default function LandingPage() {

@@ -1,8 +1,8 @@
-import { useAuth } from "../utils/useAuth";
+import {AuthProvider, UseAuth } from "./UseAuth";
 
 export const getGreeting = () => {
-  const { user } = useAuth();
-  const name = user?.first_name || "User";
+  const { user } = UseAuth();
+  const name = user?.username || "User";
   const hour = new Date().getHours();
 
   if (hour < 12) {
