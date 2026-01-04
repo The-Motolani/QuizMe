@@ -1,0 +1,17 @@
+[
+  {
+    "category_id": 1,
+    "subcategory_id": null,
+    "text": "What is JSON?",
+    "question_type": "MCQ",
+    "points": 1,
+    "difficulty": "easy",
+    "explanation": "JSON stands for JavaScript Object Notation and is used for data exchange.",
+    "answers": [
+      { "text": "A database engine", "is_correct": false },
+      { "text": "A simple data exchange format", "is_correct": true },
+      { "text": "A programming language", "is_correct": false },
+      { "text": "A web browser", "is_correct": false }
+    ]
+  }
+]

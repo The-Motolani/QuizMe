@@ -1,3 +1,5 @@
+import random
+from django.db import transaction
 from django.shortcuts import render
 from django.views.generic.edit import UpdateView
 from django.urls import reverse_lazy
@@ -9,17 +11,19 @@ from rest_framework import viewsets, filters, generics, permissions, status
 from rest_framework.decorators import action
 from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework.response import Response
-from .models import (
-    QuizCategory, SubCategory, Question, Answer, Quiz,
-    QuizAttempt, UserAnswer, MultiplayerRoom, LeaderboardEntry,
-    ShareableResult
-)
-from .serializers import (
-    QuizCategorySerializer, SubCategorySerializer, QuizSerializer,
-    QuizCreateSerializer, QuestionSerializer, UserAnswerSerializer,
-    QuizAttemptSerializer, MultiplayerRoomSerializer,
-    LeaderboardEntrySerializer, ShareableResultSerializer, SubmitAnswerSerializer
-)
+from .models import *
+# (
+#     QuizCategory, SubCategory, Question, Answer, Quiz,
+#     QuizAttempt, UserAnswer, MultiplayerRoom, LeaderboardEntry,
+#     ShareableResult
+# )
+from .serializers import *
+#  (
+#     QuizCategorySerializer, SubCategorySerializer, QuizSerializer,
+#     QuizCreateSerializer, QuestionSerializer, UserAnswerSerializer,
+#     QuizAttemptSerializer, MultiplayerRoomSerializer,
+#     LeaderboardEntrySerializer, ShareableResultSerializer, SubmitAnswerSerializer
+# )
 from rest_framework.pagination import PageNumberPagination
 
 # --- Custom Pagination ---
@@ -29,16 +33,32 @@ class QuizPagination(PageNumberPagination):
     max_page_size = 50
 
 # --- Categories ---
-class QuizCategoryViewSet(viewsets.ModelViewSet):
-    queryset = QuizCategory.objects.all()
-    serializer_class = QuizCategorySerializer
-    permission_classes = [permissions.IsAuthenticatedOrReadOnly]
+# class QuizGroupListView(generics.ListAPIView):
+#     queryset = QuizGroup.objects.all()
+#     serializer_class = QuizGroupSerializer
+#     permission_classes = [permissions.AllowAny]
 
+# class QuizCategoryViewSet(viewsets.ModelViewSet):
+#     queryset = QuizCategory.objects.all()
+#     serializer_class = QuizCategorySerializer
+#     permission_classes = [permissions.IsAuthenticatedOrReadOnly]
+class QuizCategoryListView(generics.ListAPIView):
+    serializer_class = QuizCategorySerializer
+    permission_classes = [permissions.AllowAny]
+
+    def get_queryset(self):
+        group_id = self.request.query_params.get("group")
+        qs = QuizCategory.objects.all()
+        if group_id:
+            qs = qs.filter(group_id=group_id)
+        return qs
 
 class SubCategoryViewSet(viewsets.ModelViewSet):
     queryset = SubCategory.objects.all()
     serializer_class = SubCategorySerializer
     permission_classes = [permissions.IsAuthenticatedOrReadOnly]
+    filter_backends = [DjangoFilterBackend]
+    filterset_fields = ['category']
 
 # --- Questions ---
 class QuestionViewSet(viewsets.ModelViewSet):
@@ -48,98 +68,180 @@ class QuestionViewSet(viewsets.ModelViewSet):
 
 
 # --- Quizzes ---
-class QuizViewSet(viewsets.ModelViewSet):
-    queryset = Quiz.objects.all()
-    serializer_class = QuizSerializer
-    permission_classes = [permissions.IsAuthenticatedOrReadOnly, IsQuizCreatorOrReadOnly]
-    pagination_class = QuizPagination
-    filter_backends = [DjangoFilterBackend, filters.OrderingFilter, filters.SearchFilter]
+# class QuizViewSet(viewsets.ModelViewSet):
+    # queryset = Quiz.objects.all()
+    # serializer_class = QuizSerializer
+    # permission_classes = [
+    #     permissions.IsAuthenticatedOrReadOnly,
+    #       IsQuizCreatorOrReadOnly
+    #       ]
+    # pagination_class = QuizPagination
+    # filter_backends = [
+    #     DjangoFilterBackend, 
+    #     filters.OrderingFilter, 
+    #     filters.SearchFilter
+    #     ]
     
-    # Filtering options
-    filterset_fields = ['is_public', 'creator__id', 'difficulty', 'questions__subcategory__id', 'questions__category__slug']
+    # # Filtering options
+    # filterset_fields = [
+    #     'is_public', 
+    #     'creator__id', 
+    #     'difficulty', 
+    #     'quiz_questions__subcategory__id',
+    #     # 'quiz_questions__category__slug'
+    #     ]
     
-    # Ordering options
-    ordering_fields = ['title', 'created_at']
-    ordering = ['-created_at']  # default: newest first
+    # # Ordering options
+    # ordering_fields = ['title', 'created_at', 'difficulty']
+    # ordering = ['-created_at']  # default: newest first
     
-    # Search options
-    search_fields = ['title', 'questions__text']
+    # # Search options
+    # search_fields = ['title', 'questions__text']
 
-    @action(detail=True, methods=['post'])
-    def submit_answer(self, request, pk=None):
-        question_id=request.data.get("question_id")
-        answer_id=request.data.get("answer_id")
+    # @action(detail=True, methods=['post'])
+    # def submit_answer(self, request, pk=None):
+    #     question_id=request.data.get("question_id")
+    #     answer_id=request.data.get("answer_id")
 
-        try:
-            question = Question.objects.get(id=question_id, quiz_id=pk)
-        except Question.DoesNotExist:
-            return Response({"Question Does Not Exist!"}, status=status.HTTP_400_BAD_REQUEST)
+    #     try:
+    #         question = Question.objects.get(id=question_id, quiz_id=pk)
+    #     except Question.DoesNotExist:
+    #         return Response({"Question Does Not Exist!"}, status=status.HTTP_400_BAD_REQUEST)
         
-        try:
-            answer = question.objects.get(id=answer_id)
-        except Answer.DoesNotExist:
-            return Response({'Answer does not exist!'}, status=status.HTTP_400_BAD_REQUEST)
+    #     try:
+    #         answer = question.objects.get(id=answer_id)
+    #     except Answer.DoesNotExist:
+    #         return Response({'Answer does not exist!'}, status=status.HTTP_400_BAD_REQUEST)
 
-        if answer.is_correct:
-            return Response({'Correct Answer'}, status=status.HTTP_200_OK)
-        else:
-            return Response({'Incorrect Answer'}, status=status.HTTP_400_BAD_REQUEST)
+    #     if answer.is_correct:
+    #         return Response({'Correct Answer'}, status=status.HTTP_200_OK)
+    #     else:
+    #         return Response({'Incorrect Answer'}, status=status.HTTP_400_BAD_REQUEST)
 
-    @action(detail=True, methods=['post'])
-    def add_question(self, request, pk=None):
-        quiz = self.get_object()
-        question_text = request.data.get('text')
-        answer_data = request.data.get('answer', [])
+    # @action(detail=True, methods=['post'])
+    # def add_question(self, request, pk=None):
+    #     quiz = self.get_object()
+    #     question_text = request.data.get('text')
+    #     answer_data = request.data.get('answer', [])
 
-        if not question_text:
-            return Response({'Question does not exist'}, status=status.HTTP_400_BAD_REQUEST)
+    #     if not question_text:
+    #         return Response({'Question does not exist'}, status=status.HTTP_400_BAD_REQUEST)
 
-        question = Question.objects.create(quiz=quiz, text=question_text)
+    #     question = Question.objects.create(quiz=quiz, text=question_text)
 
         
-    def get_serializer_class(self):
-        if self.action in ["create", "update", "partial_update"]:
-            return QuizCreateSerializer
-        return QuizSerializer
+    # def get_serializer_class(self):
+    #     if self.action in ["create", "update", "partial_update"]:
+    #         return QuizCreateSerializer
+    #     return QuizSerializer
 
-    def perform_create(self, serializer):
-        serializer.save(creator=self.request.user)
+    # def perform_create(self, serializer):
+    #     serializer.save(creator=self.request.user)
 
-    @action(detail=False, methods=["get"])
-    def by_category(self, request):
-        """
-        Filter quizzes by quiz category slug.
-        A quiz is included if at least one of its questions belongs to the category.
-        """
-        category_slug = request.query_params.get("category")
-        if not category_slug:
-            return Response({"error": "Category slug is required."}, status=400)
+    # @action(detail=False, methods=["get"])
+    # def by_category(self, request):
+    #     """
+    #     Filter quizzes by quiz category slug.
+    #     A quiz is included if at least one of its questions belongs to the category.
+    #     """
+    #     category_slug = request.query_params.get("category")
+    #     if not category_slug:
+    #         return Response({"error": "Category slug is required."}, status=400)
 
-        quizzes = Quiz.objects.filter(
-            questions__category__slug=category_slug
-        ).distinct()
+    #     quizzes = Quiz.objects.filter(
+    #         questions__category__slug=category_slug
+    #     ).distinct()
 
-        serializer = QuizSerializer(quizzes, many=True)
-        return Response(serializer.data)
+    #     serializer = QuizSerializer(quizzes, many=True)
+    #     return Response(serializer.data)
 
-    @action(detail=False, methods=["get"])
-    def by_subcategory(self, request):
-        """
-        Filter quizzes by question subcategory name.
-        A quiz is included if at least one of its questions belongs to the subcategory.
-        """
-        subcategory_name = request.query_params.get("subcategory")
-        if not subcategory_name:
-            return Response({"error": "Subcategory name is required."}, status=400)
+    # @action(detail=False, methods=["get"])
+    # def by_subcategory(self, request):
+    #     """
+    #     Filter quizzes by question subcategory name.
+    #     A quiz is included if at least one of its questions belongs to the subcategory.
+    #     """
+    #     subcategory_name = request.query_params.get("subcategory")
+    #     if not subcategory_name:
+    #         return Response({"error": "Subcategory name is required."}, status=400)
 
-        quizzes = Quiz.objects.filter(
-            questions__subcategory__name=subcategory_name
-        ).distinct()
+    #     quizzes = Quiz.objects.filter(
+    #         questions__subcategory__name=subcategory_name
+    #     ).distinct()
 
-        serializer = QuizSerializer(quizzes, many=True)
-        return Response(serializer.data)
-    
+    #     serializer = QuizSerializer(quizzes, many=True)
+    #     return Response(serializer.data)
+
+    #     @action(detail=False, methods=["get"])
+    #     def by_difficulty(self,request):
+    #         """
+    #         Filter quizzes by difficulty level.
+    #         """
+    #         difficulty_level = request.query_params.get("difficulty")
+    #         if not difficulty_level:
+    #             return Response({"error": "Difficulty level is required."}, status=400)
+
+    #         quizzes = Quiz.objects.filter(
+    #             difficulty=difficulty_level
+    #         ).distinct()
+
+    #         serializer = QuizSerializer(quizzes, many=True)
+    #         return Response(serializer.data)
+
+class QuizListView(generics.ListAPIView):
+    serializer_class = QuizListSerializer
+    permission_classes = [permissions.AllowAny]
+
+    def get_queryset(self):
+        return Quiz.objects.filter(is_active=True)
+
+class QuizDetailView(generics.RetrieveAPIView):
+    queryset = Quiz.objects.filter(is_active=True)
+    serializer_class = QuizDetailSerializer
+    permission_classes = [permissions.AllowAny]
+            
 # --- Quiz Attempts ---
+class StartQuizView(APIView):
+    permission_classes = [permissions.IsAuthenticated]
+
+    def post(self, request):
+        quiz_id = request.data.get("quiz_id")
+
+        try:
+            quiz = Quiz.objects.get(id=quiz_id, is_active=True)
+        except Quiz.DoesNotExist:
+            return Response(
+                {"detail": "Quiz not found"},
+                status=status.HTTP_404_NOT_FOUND
+            )
+
+        questions_qs = Question.objects.filter(
+            category=quiz.category
+        )
+
+        if quiz.subcategory:
+            questions_qs = questions_qs.filter(subcategory=quiz.subcategory)
+
+        questions = list(questions_qs)
+
+        if len(questions) < quiz.question_count:
+            return Response(
+                {"detail": "Not enough questions for this quiz"},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        selected_questions = random.sample(
+            questions,
+            quiz.question_count
+        )
+
+        return Response({
+            "quiz_id": quiz.id,
+            "title": quiz.title,
+            "difficulty": quiz.difficulty,
+            "questions": QuestionSerializer(selected_questions, many=True).data
+        })
+
 class QuizAttemptViewSet(viewsets.ModelViewSet):
     queryset = QuizAttempt.objects.all()
     serializer_class = QuizAttemptSerializer
@@ -147,6 +249,60 @@ class QuizAttemptViewSet(viewsets.ModelViewSet):
 
     def perform_create(self, serializer):
         serializer.save(user=self.request.user)
+
+class SubmitQuizView(APIView):
+    permission_classes = [permissions.IsAuthenticated]
+
+    @transaction.atomic
+    def post(self, request):
+        quiz_id = request.data.get("quiz_id")
+        answers_data = request.data.get("answers", [])
+
+        try:
+            quiz = Quiz.objects.get(id=quiz_id, is_active=True)
+        except Quiz.DoesNotExist:
+            return Response(
+                {"detail": "Quiz not found"},
+                status=status.HTTP_404_NOT_FOUND
+            )
+
+        score = 0
+        total_questions = len(answers_data)
+
+        attempt = QuizAttempt.objects.create(
+            user=request.user,
+            quiz=quiz,
+            score=0,
+            total_questions=total_questions
+        )
+
+        for item in answers_data:
+            serializer = SubmitAnswerSerializer(data=item)
+            serializer.is_valid(raise_exception=True)
+
+            question = serializer.validated_data["question"]
+            selected_answer = serializer.validated_data["selected_answer"]
+
+            is_correct = selected_answer.is_correct
+            if is_correct:
+                score += question.points
+
+            UserAnswer.objects.create(
+                user=request.user,
+                attempt=attempt,
+                question=question,
+                selected_answer=selected_answer,
+                is_correct=is_correct
+            )
+
+        attempt.score = score
+        attempt.save()
+
+        return Response({
+            "quiz_id": quiz.id,
+            "score": score,
+            "total_questions": total_questions
+        }, status=status.HTTP_201_CREATED)
 
 
 # --- Multiplayer Rooms ---
@@ -193,68 +349,68 @@ class ShareableResultViewSet(viewsets.ModelViewSet):
     def perform_create(self, serializer):
         serializer.save(user=self.request.user)
 
-class SubmitQuizAttemptView(APIView):
-    permission_classes = [IsAuthenticated]
+# class SubmitQuizAttemptView(APIView):
+#     permission_classes = [IsAuthenticated]
 
-    def post(self, request, quiz_id):
-        quiz = Quiz.objects.filter(id=quiz_id).first()
-        if not quiz:
-            return Response({"error": "Quiz not found"}, status=status.HTTP_404_NOT_FOUND)
+#     def post(self, request, quiz_id):
+#         quiz = Quiz.objects.filter(id=quiz_id).first()
+#         if not quiz:
+#             return Response({"error": "Quiz not found"}, status=status.HTTP_404_NOT_FOUND)
 
-        answers_data = request.data.get("answers", [])
-        if not answers_data:
-            return Response({"error": "No answers submitted"}, status=status.HTTP_400_BAD_REQUEST)
+#         answers_data = request.data.get("answers", [])
+#         if not answers_data:
+#             return Response({"error": "No answers submitted"}, status=status.HTTP_400_BAD_REQUEST)
 
-        total_questions = quiz.questions.count()
-        score = 0
-        user_answers = []
+#         total_questions = quiz.questions.count()
+#         score = 0
+#         user_answers = []
 
-        for item in answers_data:
-            serializer = SubmitAnswerSerializer(data=item)
-            serializer.is_valid(raise_exception=True)
-            question = serializer.validated_data['question']
-            selected_answer = serializer.validated_data['selected_answer']
-            is_correct = selected_answer.is_correct
-            if is_correct:
-                score += 1
+#         for item in answers_data:
+#             serializer = SubmitAnswerSerializer(data=item)
+#             serializer.is_valid(raise_exception=True)
+#             question = serializer.validated_data['question']
+#             selected_answer = serializer.validated_data['selected_answer']
+#             is_correct = selected_answer.is_correct
+#             if is_correct:
+#                 score += 1
 
-            user_answers.append({
-                "question": question,
-                "selected_answer": selected_answer,
-                "is_correct": is_correct
-            })
+#             user_answers.append({
+#                 "question": question,
+#                 "selected_answer": selected_answer,
+#                 "is_correct": is_correct
+#             })
 
-        # Create QuizAttempt
-        attempt = QuizAttempt.objects.create(
-            user=request.user,
-            quiz=quiz,
-            score=score,
-            total_questions=total_questions
-        )
+#         # Create QuizAttempt
+#         attempt = QuizAttempt.objects.create(
+#             user=request.user,
+#             quiz=quiz,
+#             score=score,
+#             total_questions=total_questions
+#         )
 
-        # Save UserAnswers
-        user_answer_objs = [
-            UserAnswer(
-                attempt=attempt,
-                question=ua["question"],
-                selected_answer=ua["selected_answer"],
-                is_correct=ua["is_correct"]
-            )
-            for ua in user_answers
-        ]
-        UserAnswer.objects.bulk_create(user_answer_objs)
+#         # Save UserAnswers
+#         user_answer_objs = [
+#             UserAnswer(
+#                 attempt=attempt,
+#                 question=ua["question"],
+#                 selected_answer=ua["selected_answer"],
+#                 is_correct=ua["is_correct"]
+#             )
+#             for ua in user_answers
+#         ]
+#         UserAnswer.objects.bulk_create(user_answer_objs)
 
-        # Update leaderboard
-        for question in quiz.questions.all():
-            category = question.category
-            leaderboard_entry, created = LeaderboardEntry.objects.get_or_create(
-                user=request.user,
-                category=category,
-                defaults={"best_score": score}
-            )
-            if not created and score > leaderboard_entry.best_score:
-                leaderboard_entry.best_score = score
-                leaderboard_entry.save()
+#         # Update leaderboard
+#         for question in quiz.questions.all():
+#             category = question.category
+#             leaderboard_entry, created = LeaderboardEntry.objects.get_or_create(
+#                 user=request.user,
+#                 category=category,
+#                 defaults={"best_score": score}
+#             )
+#             if not created and score > leaderboard_entry.best_score:
+#                 leaderboard_entry.best_score = score
+#                 leaderboard_entry.save()
 
-        serializer = QuizAttemptSerializer(attempt)
-        return Response(serializer.data, status=status.HTTP_201_CREATED)
+#         serializer = QuizAttemptSerializer(attempt)
+#         return Response(serializer.data, status=status.HTTP_201_CREATED)
