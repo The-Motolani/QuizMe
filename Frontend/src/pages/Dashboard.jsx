@@ -5,11 +5,11 @@ import {
 import QuizMeFavicon from "../assets/images/QuziMeFavicon";
 import { UseAuth } from "../utils/UseAuth";
 import { toast } from "react-hot-toast";
-import { useNavigate } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 
 export default function Dashboard() {
   const navigate = useNavigate();
-  const { user, login, logout } = UseAuth();
+  const { isAuthenticated, user, login, logout } = UseAuth();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [activeTab, setActiveTab] = useState("dashboard");
   const [profilePic, setProfilePic] = useState(user?.profilePicture || null);
@@ -256,7 +256,9 @@ export default function Dashboard() {
       {/* Sidebar */}
       <aside className="hidden md:flex flex-col w-64 bg-white shadow-lg p-6">
         <div className="flex items-center gap-2 mb-8">
+          <Link to={isAuthenticated ? "/homepage" : "/"}>
           <QuizMeFavicon />
+          </Link>
         </div>
 
         <div className="flex flex-col items-center gap-2 mb-6">

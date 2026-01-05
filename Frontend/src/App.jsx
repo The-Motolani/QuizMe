@@ -13,7 +13,7 @@ import QuizCategories from '../src/components/layout/QuizCategories';
 import QuizOptions from './pages/QuizOptions'
 import NotFound from './pages/404'
 import ResetPassword from './pages/ResetPassword'
-// import { AuthProvider } from './utils/AuthContext'
+// import InteractiveProgrammingQuiz from './pages/QuizOptions'
 
 function App() {
 
@@ -32,7 +32,7 @@ function App() {
           </ProtectedRoute>
           }
           />
-          <Route path='/profile' element= {<Profile/>}/>
+          <Route path='#profile' element= {<Profile/>}/>
           <Route path='/forgotPassword' element = {<ForgotPassword/>}/>
           <Route path='/dashboard/*' element = {<Dashboard/>}/>
           <Route path="*" element={<NotFound />} />
@@ -40,6 +40,7 @@ function App() {
         <Route path="/quiz/:category" element={<QuizOptions />} />
         <Route path="/quiz/:category/:subcategory" element={<QuizOptions />} />
         <Route path="/reset-password/" element={<ResetPassword />} />
+        {/* <Route path="/quiz/technology/programming" element={<InteractiveProgrammingQuiz />} /> */}
         </Routes>
        
     </>

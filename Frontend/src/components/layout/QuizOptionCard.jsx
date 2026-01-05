@@ -1,16 +1,15 @@
-import { useEffect, useState } from "react";
-import { useParams, useSearchParams } from "react-router-dom";
-import QuizOptionCard from "./QuizOptionCard";
+import { useEffect, useState, useRef } from "react";
+import { useParams, useSearchParams, useNavigate } from "react-router-dom";
 import QuizSkeleton from "../common/QuizSkeleton";
-import Pagination from '../common/Pagination';
-import DifficultyFilter from "../common/DifficultyFilter";
+import Pagination from "../common/Pagination";
 import { fetchQuizzes } from "../../services/api";
 import { UseAuth } from "../../utils/UseAuth";
 
 export default function QuizOptions() {
+  const navigate = useNavigate();
   const { category } = useParams();
   const [searchParams] = useSearchParams();
-  const { isAuthenticated } = UseAuth();
+  const { isAuthenticated, authLoading } = UseAuth();
 
   const subCategoryId = searchParams.get("subcategory");
 
@@ -21,48 +20,63 @@ export default function QuizOptions() {
   const [loading, setLoading] = useState(true);
 
   const PAGE_SIZE = 10;
+  const lastQueryRef = useRef("");
 
+  // ✅ Redirect safely
   useEffect(() => {
+    if (!authLoading && !isAuthenticated) {
+      navigate("/login", { replace: true });
+    }
+  }, [authLoading, isAuthenticated, navigate]);
+
+  // ✅ Fetch quizzes safely
+  useEffect(() => {
+    if (authLoading || !isAuthenticated) return;
+
+    const queryKey = `${page}-${category}-${subCategoryId}-${difficulty}`;
+    if (lastQueryRef.current === queryKey) return;
+    lastQueryRef.current = queryKey;
+
+    const controller = new AbortController();
     setLoading(true);
 
-    fetchQuizzes({
-      page,
-      pageSize: PAGE_SIZE,
-      categorySlug: category,
-      subCategoryId,
-      difficulty: difficulty !== "All" ? difficulty : undefined
-    })
-      .then(data => {
+    fetchQuizzes(
+      {
+        page,
+        pageSize: PAGE_SIZE,
+        categorySlug: category,
+        subCategoryId,
+        difficulty: difficulty !== "All" ? difficulty : undefined,
+      },
+      controller.signal
+    )
+      .then((data) => {
         setQuizzes(data.results);
         setCount(data.count);
       })
-      .finally(() => setLoading(false));
-  }, [page, category, subCategoryId, difficulty]);
+      .finally(() => {
+        if (!controller.signal.aborted) {
+          setLoading(false);
+        }
+      });
+
+    return () => controller.abort();
+  }, [page, category, subCategoryId, difficulty, authLoading, isAuthenticated]);
+
+  if (authLoading || loading) {
+    return <QuizSkeleton />;
+  }
 
   return (
     <section className="max-w-7xl mx-auto px-4 py-10 space-y-8">
-
-      <DifficultyFilter
-        active={difficulty}
-        onChange={level => {
-          setDifficulty(level);
-          setPage(1);
-        }}
-      />
-
       <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6">
-        {loading
-          ? Array.from({ length: 6 }).map((_, i) => (
-              <QuizSkeleton key={i} />
-            ))
-          : quizzes.map(quiz => (
-              <QuizOptionCard
-                key={quiz.id}
-                quiz={quiz}
-                isAuthenticated={isAuthenticated} // ✅ auth-driven
-              />
-            ))
-        }
+        {quizzes.map((quiz) => (
+          <QuizOptionCard
+            key={quiz.id}
+            quiz={quiz}
+            isAuthenticated={isAuthenticated}
+          />
+        ))}
       </div>
 
       <Pagination

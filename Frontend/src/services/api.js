@@ -69,8 +69,8 @@ export const fetchQuizzes = async ({
     page,
     ordering,
     search,
-    "questions__category__slug": category,
-    "questions__subcategory__name": subcategory,
+    "quiz_questions__category__slug": category,
+    "quiz_questions__subcategory__id": subcategory,
     difficulty
   };
 
@@ -81,6 +81,7 @@ export const fetchQuizzes = async ({
   const res = await axios.get(`${API_BASE}/api/quizzes/`, { params });
   return res.data;
 };
+
 
 export const subCategory = async ({categoryId}) => {
   const response = await axios.get(`${API_BASE}/api/subcategories/`, {
